@@ -42,12 +42,10 @@ def find_combination(w_perfect, p_perfect, a_perfect, w_weight, p_weight, a_weig
 def create_excel_file(results, subject, w_perfect, p_perfect, a_perfect, w_weight, p_weight, a_weight):
     """Create an Excel file with the grades in the specified format"""
     try:
-        # Ask user where to save the file
         filename = filedialog.asksaveasfilename(
             defaultextension=".xlsx",
             filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
-            title="Save Excel File",
-            initialname=f"{subject}_Grades_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            title="Save Excel File"
         )
         
         if not filename:
@@ -148,7 +146,7 @@ def create_excel_file(results, subject, w_perfect, p_perfect, a_perfect, w_weigh
                 adjusted_width = min(max_length + 2, 15)  # Max width of 15
                 worksheet.column_dimensions[column_letter].width = adjusted_width
         
-        messagebox.showinfo("Success", f"Excel file created successfully:\n{filename}")
+        messagebox.showinfo("Success", f"Excel file created successfully at:\n{filename}")
         return True
         
     except ImportError:
@@ -158,166 +156,541 @@ def create_excel_file(results, subject, w_perfect, p_perfect, a_perfect, w_weigh
         messagebox.showerror("Error", f"Failed to create Excel file:\n{str(e)}")
         return False
 
-# ================== GUI ==================
-root = tk.Tk()
-root.title("Multi-Student Grade Generator")
-root.geometry("800x600")
-
-# Globals to retain across screens
-entries = {}
-target_entries = []
-subject_var = tk.StringVar()
-generated_results = []  # Store results for Excel export
-
-def build_initial_form():
-    for widget in root.winfo_children():
-        widget.destroy()
-
-    tk.Label(root, text="Select Subject:", font=("Arial", 14)).grid(row=0, column=0, sticky="e", padx=10, pady=10)
-    dropdown = ttk.Combobox(root, textvariable=subject_var, state="readonly", font=("Arial", 14))
-    dropdown["values"] = list(subject_weights.keys())
-    dropdown.grid(row=0, column=1, padx=10, pady=10)
-    dropdown.bind("<<ComboboxSelected>>", lambda e: build_form())
-
-def build_form():
-    for widget in root.winfo_children()[2:]:  # Keep dropdown and label
-        widget.destroy()
-
-    form_labels = [
-        ("Written Count", 1), ("Written Perfects", 2),
-        ("Performance Count", 3), ("Performance Perfects", 4),
-        ("Assessment Count", 5), ("Assessment Perfects", 6),
-        ("Number of Students", 7)
-    ]
-
-    for label, row in form_labels:
-        tk.Label(root, text=label + ":", font=("Arial", 14)).grid(row=row, column=0, sticky="e", padx=10, pady=5)
-        entry = tk.Entry(root, font=("Arial", 14), width=40)
-        entry.grid(row=row, column=1, pady=5, padx=5)
-        entries[label] = entry
-
-    next_btn = tk.Button(root, text="Next", font=("Arial", 14, "bold"), bg="#add8e6", command=build_targets)
-    next_btn.grid(row=8, column=0, columnspan=2, pady=20)
-
-def build_targets():
-    global w_perfect, p_perfect, a_perfect, w_weight, p_weight, a_weight
-
-    try:
-        subject = subject_var.get()
-        weights = subject_weights[subject]
-        w_weight = weights["Written"]
-        p_weight = weights["Performance"]
-        a_weight = weights["Assessment"]
-
-        w_count = int(entries["Written Count"].get())
-        w_perfect = list(map(int, entries["Written Perfects"].get().split(',')))
-
-        p_count = int(entries["Performance Count"].get())
-        p_perfect = list(map(int, entries["Performance Perfects"].get().split(',')))
-
-        a_count = int(entries["Assessment Count"].get())
-        a_perfect = list(map(int, entries["Assessment Perfects"].get().split(',')))
-
-        num_students = int(entries["Number of Students"].get())
-        if len(w_perfect) != w_count or len(p_perfect) != p_count or len(a_perfect) != a_count:
-            raise ValueError("Mismatch in activity count and scores.")
-
-    except Exception as e:
-        messagebox.showerror("Input Error", str(e))
-        return
-
-    for widget in root.winfo_children():
-        widget.destroy()
-
-    tk.Label(root, text=f"Enter Target Grades for {num_students} Student(s):", font=("Arial", 16, "bold")).pack(pady=20)
-    frame = tk.Frame(root)
-    frame.pack()
-
-    target_entries.clear()
-    for i in range(num_students):
-        tk.Label(frame, text=f"Student {i+1} Target Grade:", font=("Arial", 14)).grid(row=i, column=0, padx=10, pady=5)
-        entry = tk.Entry(frame, font=("Arial", 14))
-        entry.grid(row=i, column=1, padx=10, pady=5)
-        target_entries.append(entry)
-
-    button_frame = tk.Frame(root)
-    button_frame.pack(pady=20)
+# ================== Modern GUI Styling ==================
+class ModernStyle:
+    # Color scheme
+    PRIMARY = "#1a1a1a"
+    SECONDARY = "#2d2d2d"
+    ACCENT = "#007acc"
+    SUCCESS = "#28a745"
+    WARNING = "#ffc107"
+    ERROR = "#dc3545"
+    BACKGROUND = "#f8f9fa"
+    SURFACE = "#ffffff"
+    TEXT_PRIMARY = "#212529"
+    TEXT_SECONDARY = "#6c757d"
+    BORDER = "#e9ecef"
     
-    generate_btn = tk.Button(button_frame, text="Generate Grades", font=("Arial", 14, "bold"), bg="#add8e6", command=generate_grades)
-    generate_btn.pack(side=tk.LEFT, padx=10)
+    # Fonts
+    FONT_TITLE = ("Segoe UI", 18, "bold")
+    FONT_HEADER = ("Segoe UI", 14, "bold")
+    FONT_MEDIUM = ("Segoe UI", 11)
+    FONT_SMALL = ("Segoe UI", 10)
+    FONT_BUTTON = ("Segoe UI", 10, "bold")
 
-def generate_grades():
-    global generated_results
+def create_modern_button(parent, text, command, bg_color=ModernStyle.ACCENT, width=12, height=1):
+    """Create a compact modern styled button"""
+    btn = tk.Button(
+        parent, 
+        text=text,
+        command=command,
+        font=ModernStyle.FONT_BUTTON,
+        bg=bg_color,
+        fg="white",
+        bd=0,
+        relief="flat",
+        padx=15,
+        pady=5,
+        width=width,
+        height=height,
+        cursor="hand2"
+    )
     
-    try:
-        results = []
-        for entry in target_entries:
-            grade = float(entry.get())
-            result = find_combination(w_perfect, p_perfect, a_perfect, w_weight, p_weight, a_weight, grade)
-            if result:
-                results.append(result)
-            else:
-                results.append({"Final Grade": grade, "Error": "No matching combination found."})
+    # Hover effects
+    def on_enter(e):
+        btn['bg'] = ModernStyle.SECONDARY
+    def on_leave(e):
+        btn['bg'] = bg_color
+    
+    btn.bind("<Enter>", on_enter)
+    btn.bind("<Leave>", on_leave)
+    
+    return btn
 
-        generated_results = results  # Store for Excel export
+def create_modern_entry(parent, width=20):
+    """Create a compact modern styled entry"""
+    entry = tk.Entry(
+        parent,
+        font=ModernStyle.FONT_MEDIUM,
+        bg=ModernStyle.SURFACE,
+        fg=ModernStyle.TEXT_PRIMARY,
+        bd=1,
+        relief="solid",
+        width=width,
+        highlightthickness=1,
+        highlightcolor=ModernStyle.ACCENT,
+        highlightbackground=ModernStyle.BORDER
+    )
+    return entry
+
+# ================== Main Application ==================
+class GradeGeneratorApp:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.setup_window()
+        self.entries = {}
+        self.target_entries = []
+        self.subject_var = tk.StringVar()
+        self.generated_results = []
         
-        msg = ""
-        for i, res in enumerate(results):
-            msg += f"Student {i+1} Target Grade: {res['Final Grade']}%\n"
-            if "Error" in res:
-                msg += f"  {res['Error']}\n"
-            else:
-                for comp in ["Written Works", "Performance Task", "Quarterly Assessment"]:
-                    msg += f"  {comp}: Scores: {res[comp][0]}, Grade: {round(res[comp][1], 2)}%\n"
-                msg += "\n"
+        # Initialize with first screen
+        self.build_initial_form()
+    
+    def setup_window(self):
+        """Setup main window with compact sizing"""
+        self.root.title("Grade Generator Pro")
+        self.root.geometry("1000x650")
+        self.root.configure(bg=ModernStyle.BACKGROUND)
+        self.root.resizable(False, False)
+        
+        # Center window on screen
+        self.root.update_idletasks()
+        x = (self.root.winfo_screenwidth() // 2) - (1000 // 2)
+        y = (self.root.winfo_screenheight() // 2) - (650 // 2)
+        self.root.geometry(f"1000x650+{x}+{y}")
+    
+    def clear_window(self):
+        """Clear all widgets from window"""
+        for widget in self.root.winfo_children():
+            widget.destroy()
+    
+    def build_initial_form(self):
+        """Build the compact initial subject selection form"""
+        self.clear_window()
+        
+        # Main container
+        main_frame = tk.Frame(self.root, bg=ModernStyle.BACKGROUND)
+        main_frame.pack(expand=True, fill="both", padx=30, pady=30)
+        
+        # Compact header
+        title_label = tk.Label(
+            main_frame,
+            text="Grade Generator Pro",
+            font=("Segoe UI", 24, "bold"),
+            bg=ModernStyle.BACKGROUND,
+            fg=ModernStyle.PRIMARY
+        )
+        title_label.pack(pady=(0, 5))
+        
+        subtitle_label = tk.Label(
+            main_frame,
+            text="Generate student grades with professional Excel export",
+            font=ModernStyle.FONT_MEDIUM,
+            bg=ModernStyle.BACKGROUND,
+            fg=ModernStyle.TEXT_SECONDARY
+        )
+        subtitle_label.pack(pady=(0, 30))
+        
+        # Compact subject selection card
+        card_frame = tk.Frame(main_frame, bg=ModernStyle.SURFACE, relief="solid", bd=1)
+        card_frame.pack(pady=20, ipadx=40, ipady=30)
+        
+        # Subject selection
+        subject_label = tk.Label(
+            card_frame,
+            text="Select Subject:",
+            font=ModernStyle.FONT_HEADER,
+            bg=ModernStyle.SURFACE,
+            fg=ModernStyle.TEXT_PRIMARY
+        )
+        subject_label.pack(pady=(0, 10))
+        
+        # Modern combobox styling
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure('Modern.TCombobox',
+                       fieldbackground=ModernStyle.SURFACE,
+                       background=ModernStyle.SURFACE,
+                       borderwidth=1,
+                       focuscolor=ModernStyle.ACCENT)
+        
+        dropdown = ttk.Combobox(
+            card_frame,
+            textvariable=self.subject_var,
+            state="readonly",
+            font=ModernStyle.FONT_MEDIUM,
+            style='Modern.TCombobox',
+            width=25
+        )
+        dropdown["values"] = list(subject_weights.keys())
+        dropdown.pack(pady=(0, 15))
+        dropdown.bind("<<ComboboxSelected>>", lambda e: self.build_form())
+        
+        # Compact instructions
+        instruction_label = tk.Label(
+            card_frame,
+            text="Choose a subject to begin",
+            font=ModernStyle.FONT_SMALL,
+            bg=ModernStyle.SURFACE,
+            fg=ModernStyle.TEXT_SECONDARY
+        )
+        instruction_label.pack()
+    
+    def build_form(self):
+        """Build compact form for entering grade parameters"""
+        self.clear_window()
+        
+        # Main container
+        main_frame = tk.Frame(self.root, bg=ModernStyle.BACKGROUND)
+        main_frame.pack(expand=True, fill="both", padx=30, pady=20)
+        
+        # Compact header
+        header_frame = tk.Frame(main_frame, bg=ModernStyle.BACKGROUND)
+        header_frame.pack(fill="x", pady=(0, 15))
+        
+        back_btn = create_modern_button(
+            header_frame, "← Back", self.build_initial_form, 
+            bg_color=ModernStyle.TEXT_SECONDARY, width=8
+        )
+        back_btn.pack(side="left")
+        
+        title_label = tk.Label(
+            header_frame,
+            text=f"Setup Parameters - {self.subject_var.get()}",
+            font=ModernStyle.FONT_TITLE,
+            bg=ModernStyle.BACKGROUND,
+            fg=ModernStyle.PRIMARY
+        )
+        title_label.pack(side="left", padx=(15, 0))
+        
+        # Form in a single compact card
+        card_frame = tk.Frame(main_frame, bg=ModernStyle.SURFACE, relief="solid", bd=1)
+        card_frame.pack(fill="both", expand=True, pady=10)
+        
+        # Content frame with padding
+        content_frame = tk.Frame(card_frame, bg=ModernStyle.SURFACE)
+        content_frame.pack(padx=25, pady=20, fill="both", expand=True)
+        
+        # Create 3-column layout for compactness
+        left_frame = tk.Frame(content_frame, bg=ModernStyle.SURFACE)
+        left_frame.pack(side="left", fill="both", expand=True, padx=(0, 15))
+        
+        middle_frame = tk.Frame(content_frame, bg=ModernStyle.SURFACE)
+        middle_frame.pack(side="left", fill="both", expand=True, padx=(0, 15))
+        
+        right_frame = tk.Frame(content_frame, bg=ModernStyle.SURFACE)
+        right_frame.pack(side="left", fill="both", expand=True)
+        
+        # Written Works section
+        self.create_section(left_frame, "📝 Written Works", [
+            ("Written Count", "Activities count"),
+            ("Written Perfects", "Perfect scores (comma-separated)")
+        ])
+        
+        # Performance Tasks section
+        self.create_section(middle_frame, "🎯 Performance Tasks", [
+            ("Performance Count", "Tasks count"),
+            ("Performance Perfects", "Perfect scores (comma-separated)")
+        ])
+        
+        # Assessment + Students section
+        self.create_section(right_frame, "📊 Assessment & Students", [
+            ("Assessment Count", "Assessments count"),
+            ("Assessment Perfects", "Perfect scores (comma-separated)"),
+            ("Number of Students", "Total students")
+        ])
+        
+        # Next button at bottom
+        button_frame = tk.Frame(content_frame, bg=ModernStyle.SURFACE)
+        button_frame.pack(side="bottom", pady=(15, 0))
+        
+        next_btn = create_modern_button(button_frame, "Next →", self.build_targets, width=15)
+        next_btn.pack()
+    
+    def create_section(self, parent, title, fields):
+        """Create a compact section with fields"""
+        # Section header
+        title_label = tk.Label(
+            parent,
+            text=title,
+            font=ModernStyle.FONT_HEADER,
+            bg=ModernStyle.SURFACE,
+            fg=ModernStyle.ACCENT
+        )
+        title_label.pack(anchor="w", pady=(0, 10))
+        
+        # Fields
+        for field_name, description in fields:
+            field_frame = tk.Frame(parent, bg=ModernStyle.SURFACE)
+            field_frame.pack(fill="x", pady=6)
+            
+            label = tk.Label(
+                field_frame,
+                text=field_name + ":",
+                font=ModernStyle.FONT_MEDIUM,
+                bg=ModernStyle.SURFACE,
+                fg=ModernStyle.TEXT_PRIMARY
+            )
+            label.pack(anchor="w")
+            
+            entry = create_modern_entry(field_frame, width=25)
+            entry.pack(anchor="w", pady=(2, 0))
+            
+            desc_label = tk.Label(
+                field_frame,
+                text=description,
+                font=ModernStyle.FONT_SMALL,
+                bg=ModernStyle.SURFACE,
+                fg=ModernStyle.TEXT_SECONDARY
+            )
+            desc_label.pack(anchor="w", pady=(1, 0))
+            
+            self.entries[field_name] = entry
+    
+    def build_targets(self):
+        """Build compact target grades input form"""
+        try:
+            # Validate and store form data
+            subject = self.subject_var.get()
+            weights = subject_weights[subject]
+            self.w_weight = weights["Written"]
+            self.p_weight = weights["Performance"]
+            self.a_weight = weights["Assessment"]
 
-        # Show results and add Excel export button
-        result_window = tk.Toplevel(root)
+            w_count = int(self.entries["Written Count"].get())
+            self.w_perfect = list(map(int, self.entries["Written Perfects"].get().split(',')))
+
+            p_count = int(self.entries["Performance Count"].get())
+            self.p_perfect = list(map(int, self.entries["Performance Perfects"].get().split(',')))
+
+            a_count = int(self.entries["Assessment Count"].get())
+            self.a_perfect = list(map(int, self.entries["Assessment Perfects"].get().split(',')))
+
+            self.num_students = int(self.entries["Number of Students"].get())
+            
+            if len(self.w_perfect) != w_count or len(self.p_perfect) != p_count or len(self.a_perfect) != a_count:
+                raise ValueError("Mismatch in activity count and scores.")
+
+        except Exception as e:
+            messagebox.showerror("Input Error", str(e))
+            return
+        
+        self.clear_window()
+        
+        # Main container
+        main_frame = tk.Frame(self.root, bg=ModernStyle.BACKGROUND)
+        main_frame.pack(expand=True, fill="both", padx=30, pady=20)
+        
+        # Compact header
+        header_frame = tk.Frame(main_frame, bg=ModernStyle.BACKGROUND)
+        header_frame.pack(fill="x", pady=(0, 15))
+        
+        back_btn = create_modern_button(
+            header_frame, "← Back", self.build_form, 
+            bg_color=ModernStyle.TEXT_SECONDARY, width=8
+        )
+        back_btn.pack(side="left")
+        
+        title_label = tk.Label(
+            header_frame,
+            text=f"Target Grades - {self.num_students} Students",
+            font=ModernStyle.FONT_TITLE,
+            bg=ModernStyle.BACKGROUND,
+            fg=ModernStyle.PRIMARY
+        )
+        title_label.pack(side="left", padx=(15, 0))
+        
+        # Students card with vertical list
+        card_frame = tk.Frame(main_frame, bg=ModernStyle.SURFACE, relief="solid", bd=1)
+        card_frame.pack(fill="both", expand=True, pady=10)
+        
+        # Create left and right columns for students
+        content_frame = tk.Frame(card_frame, bg=ModernStyle.SURFACE)
+        content_frame.pack(padx=25, pady=20, fill="both", expand=True)
+        
+        # Students list header
+        list_header = tk.Label(
+            content_frame,
+            text="🎓 Enter Target Grades for Each Student",
+            font=ModernStyle.FONT_HEADER,
+            bg=ModernStyle.SURFACE,
+            fg=ModernStyle.ACCENT
+        )
+        list_header.pack(pady=(0, 15))
+        
+        # Create scrollable frame for many students
+        students_frame = tk.Frame(content_frame, bg=ModernStyle.SURFACE)
+        students_frame.pack(fill="both", expand=True)
+        
+        # Create columns based on number of students
+        cols = 3 if self.num_students > 15 else 2 if self.num_students > 8 else 1
+        
+        # Create column frames
+        column_frames = []
+        for i in range(cols):
+            col_frame = tk.Frame(students_frame, bg=ModernStyle.SURFACE)
+            col_frame.pack(side="left", fill="both", expand=True, padx=(0, 10 if i < cols-1 else 0))
+            column_frames.append(col_frame)
+        
+        # Distribute students across columns
+        self.target_entries.clear()
+        students_per_col = (self.num_students + cols - 1) // cols
+        
+        for i in range(self.num_students):
+            col_index = i // students_per_col
+            if col_index >= cols:
+                col_index = cols - 1
+                
+            parent_frame = column_frames[col_index]
+            
+            student_frame = tk.Frame(parent_frame, bg=ModernStyle.SURFACE)
+            student_frame.pack(fill="x", pady=2)
+            
+            # Horizontal layout for each student
+            label = tk.Label(
+                student_frame,
+                text=f"Student {i+1}:",
+                font=ModernStyle.FONT_MEDIUM,
+                bg=ModernStyle.SURFACE,
+                fg=ModernStyle.TEXT_PRIMARY,
+                width=12,
+                anchor="w"
+            )
+            label.pack(side="left")
+            
+            entry = create_modern_entry(student_frame, width=10)
+            entry.pack(side="left", padx=(5, 0))
+            entry.insert(0, "85.0")  # Default grade
+            
+            percent_label = tk.Label(
+                student_frame,
+                text="%",
+                font=ModernStyle.FONT_MEDIUM,
+                bg=ModernStyle.SURFACE,
+                fg=ModernStyle.TEXT_SECONDARY
+            )
+            percent_label.pack(side="left", padx=(2, 0))
+            
+            self.target_entries.append(entry)
+        
+        # Generate button at bottom
+        button_frame = tk.Frame(content_frame, bg=ModernStyle.SURFACE)
+        button_frame.pack(pady=(20, 0))
+        
+        generate_btn = create_modern_button(
+            button_frame, "🚀 Generate Grades", self.generate_grades, 
+            bg_color=ModernStyle.SUCCESS, width=18
+        )
+        generate_btn.pack()
+    
+    def generate_grades(self):
+        """Generate grades and show results"""
+        try:
+            results = []
+            for entry in self.target_entries:
+                grade = float(entry.get())
+                result = find_combination(
+                    self.w_perfect, self.p_perfect, self.a_perfect, 
+                    self.w_weight, self.p_weight, self.a_weight, grade
+                )
+                if result:
+                    results.append(result)
+                else:
+                    results.append({"Final Grade": grade, "Error": "No matching combination found."})
+
+            self.generated_results = results
+            self.show_results(results)
+            
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+    
+    def show_results(self, results):
+        """Show results in a compact window"""
+        result_window = tk.Toplevel(self.root)
         result_window.title("Generated Grades")
-        result_window.geometry("600x400")
+        result_window.geometry("900x600")
+        result_window.configure(bg=ModernStyle.BACKGROUND)
+        result_window.resizable(False, False)
         
-        text_widget = tk.Text(result_window, wrap=tk.WORD, font=("Arial", 10))
-        scrollbar = tk.Scrollbar(result_window, orient="vertical", command=text_widget.yview)
+        # Center the window
+        result_window.update_idletasks()
+        x = (result_window.winfo_screenwidth() // 2) - (900 // 2)
+        y = (result_window.winfo_screenheight() // 2) - (600 // 2)
+        result_window.geometry(f"900x600+{x}+{y}")
+        
+        # Compact header
+        header_frame = tk.Frame(result_window, bg=ModernStyle.BACKGROUND)
+        header_frame.pack(fill="x", padx=25, pady=(25, 15))
+        
+        title_label = tk.Label(
+            header_frame,
+            text="Generated Grades",
+            font=ModernStyle.FONT_TITLE,
+            bg=ModernStyle.BACKGROUND,
+            fg=ModernStyle.PRIMARY
+        )
+        title_label.pack(side="left")
+        
+        export_btn = create_modern_button(
+            header_frame, "📊 Export to Excel", self.export_to_excel, 
+            bg_color=ModernStyle.SUCCESS, width=15
+        )
+        export_btn.pack(side="right")
+        
+        # Results display
+        results_frame = tk.Frame(result_window, bg=ModernStyle.SURFACE, relief="solid", bd=1)
+        results_frame.pack(fill="both", expand=True, padx=25, pady=(0, 25))
+        
+        # Create text widget with scrollbar
+        text_frame = tk.Frame(results_frame, bg=ModernStyle.SURFACE)
+        text_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        text_widget = tk.Text(
+            text_frame,
+            wrap=tk.WORD,
+            font=("Consolas", 9),
+            bg=ModernStyle.SURFACE,
+            fg=ModernStyle.TEXT_PRIMARY,
+            bd=0,
+            highlightthickness=0
+        )
+        
+        scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=text_widget.yview)
         text_widget.configure(yscrollcommand=scrollbar.set)
         
         text_widget.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
+        # Format and insert results
+        msg = ""
+        for i, res in enumerate(results):
+            msg += f"{'='*60}\n"
+            msg += f"STUDENT {i+1} - Target Grade: {res['Final Grade']}%\n"
+            msg += f"{'='*60}\n"
+            
+            if "Error" in res:
+                msg += f"❌ {res['Error']}\n\n"
+            else:
+                components = ["Written Works", "Performance Task", "Quarterly Assessment"]
+                for comp in components:
+                    scores = res[comp][0]
+                    grade = res[comp][1]
+                    msg += f"{comp}:\n"
+                    msg += f"  Scores: {scores}\n"
+                    msg += f"  Grade: {grade:.2f}%\n\n"
+                msg += f"✅ Final Grade: {res['Final Grade']}%\n"
+            msg += "\n"
+        
         text_widget.insert("1.0", msg)
         text_widget.config(state="disabled")
-        
-        # Add Excel export button
-        export_btn = tk.Button(result_window, text="Export to Excel", font=("Arial", 12, "bold"), 
-                              bg="#90EE90", command=lambda: export_to_excel())
-        export_btn.pack(pady=10)
-        
-    except Exception as e:
-        messagebox.showerror("Error", str(e))
-
-def export_to_excel():
-    """Export the generated results to Excel"""
-    if not generated_results:
-        messagebox.showwarning("Warning", "No grades generated yet!")
-        return
     
-    subject = subject_var.get()
-    success = create_excel_file(generated_results, subject, w_perfect, p_perfect, a_perfect, w_weight, p_weight, a_weight)
+    def export_to_excel(self):
+        """Export results to Excel"""
+        if not self.generated_results:
+            messagebox.showwarning("Warning", "No grades generated yet!")
+            return
+        
+        subject = self.subject_var.get()
+        success = create_excel_file(
+            self.generated_results, subject, self.w_perfect, self.p_perfect, self.a_perfect,
+            self.w_weight, self.p_weight, self.a_weight
+        )
     
-    if success:
-        # Ask if user wants to open the file location
-        response = messagebox.askyesno("Success", "Excel file created successfully!\nWould you like to open the file location?")
-        if response:
-            try:
-                import subprocess
-                import os
-                # Open the directory containing the file (works on Windows, Mac, Linux)
-                if os.name == 'nt':  # Windows
-                    subprocess.run(['explorer', os.path.dirname(filename)], check=True)
-                elif os.name == 'posix':  # macOS and Linux
-                    subprocess.run(['open' if 'darwin' in os.sys.platform else 'xdg-open', 
-                                   os.path.dirname(filename)], check=True)
-            except:
-                pass  # Silently fail if can't open directory
+    def run(self):
+        """Start the application"""
+        self.root.mainloop()
 
-build_initial_form()
-root.mainloop()
+# ================== Launch Application ==================
+if __name__ == "__main__":
+    app = GradeGeneratorApp()
+    app.run()
