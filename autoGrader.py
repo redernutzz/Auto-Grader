@@ -1,7 +1,17 @@
 import tkinter as tk
-from tkinter import simpledialog, messagebox
+from tkinter import messagebox, ttk
 import random
 
+# ================== Subject-specific percentage weights ==================
+subject_weights = {
+    "Math": {"Written": 40, "Performance": 40, "Assessment": 20},
+    "English": {"Written": 30, "Performance": 50, "Assessment": 20},
+    "Science": {"Written": 35, "Performance": 45, "Assessment": 20},
+    "Filipino": {"Written": 25, "Performance": 50, "Assessment": 25},
+    "Araling Panlipunan": {"Written": 30, "Performance": 50, "Assessment": 20},
+}
+
+# ================== Grade Logic ==================
 def calculate_component_grade(scores, perfect_scores):
     return (sum(scores) / sum(perfect_scores)) * 100 if sum(perfect_scores) > 0 else 0
 
@@ -26,44 +36,97 @@ def find_combination(w_perfect, p_perfect, a_perfect, w_weight, p_weight, a_weig
             }
     return None
 
-def run_program():
+# ================== GUI Setup ==================
+root = tk.Tk()
+root.title("Subject Grade Generator")
+
+# ---------------- Subject Selection ----------------
+tk.Label(root, text="Select Subject:").grid(row=0, column=0, sticky="e", padx=5, pady=5)
+subject_var = tk.StringVar()
+subject_dropdown = ttk.Combobox(root, textvariable=subject_var, state="readonly")
+subject_dropdown["values"] = list(subject_weights.keys())
+subject_dropdown.grid(row=0, column=1, padx=5, pady=5)
+
+# ---------------- Dynamic Form ----------------
+form_frame = tk.Frame(root)
+form_frame.grid(row=1, column=0, columnspan=2, pady=10)
+
+fields = [
+    "Written Count", "Written Perfects",
+    "Performance Count", "Performance Perfects",
+    "Assessment Count", "Assessment Perfects",
+    "Target Grade"
+]
+
+entries = {}
+
+def build_form():
+    for widget in form_frame.winfo_children():
+        widget.destroy()
+
+    selected_subject = subject_var.get()
+    if not selected_subject:
+        return
+
+    tk.Label(form_frame, text=f"Grading breakdown for {selected_subject}:",
+             font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=2, pady=(0, 10))
+
+    weights = subject_weights[selected_subject]
+    tk.Label(form_frame, text=f"Written Works: {weights['Written']}%", fg="blue").grid(row=1, column=0, sticky="w")
+    tk.Label(form_frame, text=f"Performance Task: {weights['Performance']}%", fg="green").grid(row=1, column=1, sticky="w")
+    tk.Label(form_frame, text=f"Quarterly Assessment: {weights['Assessment']}%", fg="purple").grid(row=1, column=2, sticky="w")
+
+    for idx, field in enumerate(fields, start=2):
+        label = tk.Label(form_frame, text=field + ":")
+        label.grid(row=idx, column=0, sticky="e", padx=5, pady=3)
+        entry = tk.Entry(form_frame, width=40)
+        entry.grid(row=idx, column=1, columnspan=2, pady=3, padx=5, sticky="w")
+        entries[field] = entry
+
+    submit_btn = tk.Button(form_frame, text="Generate Grade", command=submit_form)
+    submit_btn.grid(row=len(fields) + 2, column=0, columnspan=3, pady=10)
+
+subject_dropdown.bind("<<ComboboxSelected>>", lambda e: build_form())
+
+# ---------------- Form Submission ----------------
+def submit_form():
     try:
-        w_weight = int(simpledialog.askstring("Input", "Written Works Weight (%):"))
-        p_weight = int(simpledialog.askstring("Input", "Performance Task Weight (%):"))
-        a_weight = int(simpledialog.askstring("Input", "Quarterly Assessment Weight (%):"))
+        subject = subject_var.get()
+        if not subject:
+            raise ValueError("Please select a subject.")
 
-        w_count = int(simpledialog.askstring("Input", "Number of Written Works Activities:"))
-        w_perfect = list(map(int, simpledialog.askstring("Input", "Perfect Scores for Written Works (comma-separated):").split(',')))
+        w_weight = subject_weights[subject]["Written"]
+        p_weight = subject_weights[subject]["Performance"]
+        a_weight = subject_weights[subject]["Assessment"]
+
+        w_count = int(entries["Written Count"].get())
+        w_perfect = list(map(int, entries["Written Perfects"].get().split(',')))
         if len(w_perfect) != w_count:
-            raise ValueError("Mismatch in written work activity count and scores.")
+            raise ValueError("Mismatch in Written Work count and scores")
 
-        p_count = int(simpledialog.askstring("Input", "Number of Performance Task Activities:"))
-        p_perfect = list(map(int, simpledialog.askstring("Input", "Perfect Scores for Performance Tasks (comma-separated):").split(',')))
+        p_count = int(entries["Performance Count"].get())
+        p_perfect = list(map(int, entries["Performance Perfects"].get().split(',')))
         if len(p_perfect) != p_count:
-            raise ValueError("Mismatch in performance task activity count and scores.")
+            raise ValueError("Mismatch in Performance Task count and scores")
 
-        a_count = int(simpledialog.askstring("Input", "Number of Quarterly Assessments:"))
-        a_perfect = list(map(int, simpledialog.askstring("Input", "Perfect Scores for Quarterly Assessments (comma-separated):").split(',')))
+        a_count = int(entries["Assessment Count"].get())
+        a_perfect = list(map(int, entries["Assessment Perfects"].get().split(',')))
         if len(a_perfect) != a_count:
-            raise ValueError("Mismatch in assessment activity count and scores.")
+            raise ValueError("Mismatch in Assessment count and scores")
 
-        target_grade = float(simpledialog.askstring("Input", "Target Final Grade (%):"))
+        target_grade = float(entries["Target Grade"].get())
 
         result = find_combination(w_perfect, p_perfect, a_perfect, w_weight, p_weight, a_weight, target_grade)
 
         if result:
-            message = f"Target Grade: {result['Final Grade']}%\n\n"
-            for key in ["Written Works", "Performance Task", "Quarterly Assessment"]:
-                message += f"{key}:\n  Scores: {result[key][0]}\n  Grade: {round(result[key][1], 2)}%\n\n"
-            messagebox.showinfo("Grade Combination Found", message)
+            msg = f"🎯 Target Grade: {result['Final Grade']}%\n\n"
+            for comp in ["Written Works", "Performance Task", "Quarterly Assessment"]:
+                msg += f"{comp}:\n  Scores: {result[comp][0]}\n  Grade: {round(result[comp][1], 2)}%\n\n"
+            messagebox.showinfo("Result", msg)
         else:
-            messagebox.showwarning("No Match", "No suitable score combination found within the attempt limit.")
+            messagebox.showwarning("No Match", "Couldn't find a matching score combination.")
 
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
-# Run GUI
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.withdraw()
-    run_program()
+root.mainloop()
